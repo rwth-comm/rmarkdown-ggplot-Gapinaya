@@ -1,0 +1,217 @@
+---
+title: "Black Education Matters"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::material:
+    highlight: kate
+---
+
+
+```{r setup, echo=FALSE, cache=FALSE}
+library(knitr)
+library(rmdformats)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=FALSE,
+	             cache=TRUE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+```
+
+```{r setup2, echo=FALSE, cache=FALSE}
+library(tidyverse)
+library(dplyr)
+tuition_cost <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-10/tuition_cost.csv')
+diversity_school <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-09-24/school_diversity.csv")
+diversity_college <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-10/diversity_school.csv')
+historical_tuition <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-10/historical_tuition.csv')
+achievement_education_and_science <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-06-09/firsts.csv')
+
+
+```
+
+
+# Black Education Matters
+Racism against black people, their oppression and discrimination have been a present and much discussed topic for many decades. Until 1865, black people were enslaved in America. But even after that they could not benefit from the same rights as white people. Initially there were strict racial segregation, separate toilets for black and white people, separate schools and many other restrictions and differences. Arriving in 2020, people are more enlightened, free and have the same rights no matter where they come from - so far in theory. But the year 2020 in particular has once again stirred up the issue of racism and made it clear that it is not over yet. Racism still exists nowadays and accompanies us every day. The case of [George Floyd](https://de.wikipedia.org/wiki/Todesfall_George_Floyd), an African-American who was murdered by the police after lying helplessly on the ground crying, triggered the ["Black Lives Matter"](https://blacklivesmatter.com) movement (BLM). BLM educates about racism and wants to stop it.
+
+```{r setup8,echo=FALSE,cache=FALSE}
+library(cowplot)
+library(magick)
+logo_raw <- image_read("poster.png") 
+logo_raw
+```
+
+
+#### Dataset
+
+The data set was provided via TidyTuesday and contains data describing diversity, costs, and so on in schools, colleges and universities in the USA. 
+
+# Diversity in colleges and schools
+
+Making education inaccessible to certain groups of people is also a form of racism. Especially in America, it is clear that the necessary diversity is lacking at universities. In the following diagram, it can be seen very clearly that the proportion of white students is far higher than that of black people or other minorities.
+
+Are you particularly curious about a particular state or are you interested in studying there? See for yourself how diverse the colleges and universities are by simply clicking on the respective state and then on the colored area!
+
+```{r setup5, echo=FALSE, cache=FALSE}
+diversity_college%>%
+  arrange(desc(category)) %>%
+  filter(category != "Women", category != "Unknown", category != "Total Minority", category != "Non-Resident Foreign", category != "Two Or More Races") %>%
+  ggplot() +
+  aes(y = reorder(category,enrollment)) +
+  aes(x = enrollment) +
+  aes(fill = state) +
+  geom_col() +
+  labs(x="Amount of students",y="", title= "Diversity in colleges and universities in \nthe US states") +
+  theme(axis.text.y = element_text(angle = 90, vjust = 0.5, hjust=1))+
+  guides(fill=guide_legend(title=NULL))+
+  theme_minimal(base_size = 8) +
+  theme(panel.background = element_rect(fill = "grey90"))+
+  scale_x_continuous(labels = scales::comma_format(big.mark = ".", decimal.mark = ","))+
+  theme(legend.position="bottom") -> p 
+  
+
+
+library(plotly)
+
+ggplotly(p)
+```
+
+In comparison to higher education institutions, one can see that diversity is more prominent in schools. Approximately 90% of children in America attend public, free schools. However, while they are still in school, children have to start working or apply for scholarships in order to have a chance to study.
+
+In the following diagram you can see the diversity of the schools. "Diverse" means that the different ethnic groups being white, African-American, Asian and Hispanic are equally distributed. A school is considered "undiverse" if one of these groups makes up 75% of the total number. Schools are considered "extreme undiverse" from 90% upwards. In the mid-1990s, most schools were still (extreme) undiverse, as the majority of pupils are white. In rare cases, African Americans predominate. The diagram shows that diversity has changed and the number of (extreme) undiverse schools has decreased. The diverse schools are now the most commonly represented.  
+
+
+```{r setup6, echo=FALSE, cache=FALSE}
+diversity_school %>% 
+  ggplot + 
+  aes(diverse, fill=diverse) + 
+  geom_bar() + 
+ 
+  facet_wrap(SCHOOL_YEAR ~ .) + 
+  labs(title= "Diversity in schools") + 
+  theme(axis.title.x=element_blank()) + 
+  theme(axis.title.y=element_blank())+
+  theme(legend.title=element_blank())+
+  theme(axis.ticks.x=element_blank())+
+  theme(axis.text.x = element_blank())+
+  scale_y_continuous(labels = scales::comma_format(big.mark = ".", decimal.mark = ","))+
+   scale_fill_manual(values=c("#66CDAA", "#836FFF", "#0644B3"))
+
+
+```
+
+But what is the origin of these differences in diversity in schools and higher education institutions? One problem lies in the selective recruitment procedures of colleges and universities - origin and skin colour still play a role in many places. But high tuition costs can also lead to the exclusion of certain groups and thus to less diversity. We would like to examine this aspect in more detail in the following.
+
+
+# Collegecosts in America
+
+In America it is common for students to have to pay large amounts of money to attend college or university. This applies not only to private institutions, but also to public ones. The following two diagrams show the total costs for colleges and universities, divided into public and private in the different states of the USA. The first diagram shows the costs for a 2-year study, the second diagram shows the costs for a 4-year study. 
+You can also see how much the cost of studying varies within the different states and where the average cost lies.  
+
+
+```{r setup4, echo=FALSE, cache=FALSE}
+ 
+#Kosten je nach Länge des Studiums 
+
+#2 Jahre
+tuition_cost%>%
+    filter(str_detect(degree_length, "2 Year"), type != "For Profit")%>%
+ ggplot()+aes(x=state_code,y=in_state_total,fill=type) + geom_col(position="identity")+
+  labs(x="State", y="Costs", title= "Study fees in different US states for a 2-year study")+
+   scale_y_continuous(labels = scales::comma_format(big.mark = ".", decimal.mark = ","))+
+  scale_fill_manual(values=c("#66CDAA", "#0644B3"))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+  guides(fill=guide_legend(title=NULL))
+
+#mean (Mittelwerte sind die grünen Punkte)
+tuition_cost%>%
+  filter(str_detect(degree_length, "2 Year"), type != "For Profit")%>%
+  ggplot()+aes (x = state_code, y = in_state_total) +
+   stat_summary(fun = mean, color ="#66CDAA") +
+   geom_line(position="identity")+
+  labs(x="State", y="Costs", title= "Mean of study fees in different states of the US \nfor a 2-year study")+
+   scale_y_continuous(labels = scales::comma_format(big.mark = ".", decimal.mark = ","))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+  guides(fill=guide_legend(title=NULL))
+
+#4 Jahre
+tuition_cost%>%
+    filter(str_detect(degree_length, "4 Year"), type != "For Profit")%>%
+ ggplot()+aes(state_code,in_state_total, fill=type) + geom_col(position="identity")+
+  labs(x="State", y="Costs", title= "Study fees in different US states for a 4-year study")+
+   scale_y_continuous(labels = scales::comma_format(big.mark = ".", decimal.mark = ","))+
+  scale_fill_manual(values=c("#66CDAA", "#0644B3"))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+  guides(fill=guide_legend(title=NULL))
+
+#mean (Mittelwerte sind die grünen Punkte)
+tuition_cost%>%
+  filter(str_detect(degree_length, "4 Year"), type != "For Profit")%>%
+  ggplot()+aes (x = state_code, y = in_state_total) +
+   stat_summary(fun = mean, color ="#66CDAA") +
+   geom_line(position="identity")+
+  labs(x="State", y="Costs", title= "Mean of study fees in different states of the US \n for a 4-year-study")+
+   scale_y_continuous(labels = scales::comma_format(big.mark = ".", decimal.mark = ","))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+  guides(fill=guide_legend(title=NULL))
+
+
+```
+Although a general reduction in costs or increased funding by colleges and universities or by the state are urgently needed, exactly the opposite is happening. The cost of studying in America has risen significantly in recent decades - both in private and public institutions.
+```{r setup55, echo=FALSE, cache=FALSE}
+#Visualisierung der Kosten über die Jahre von verschiedenen Typen von Institutionen
+
+historical_tuition %>%
+  ggplot +
+  aes(year, tuition_cost, colour=type, group=type) +
+  stat_summary(fun = mean)+
+  #geom_point()+
+  labs(x="Year", y="Study fees", 
+       title= "Increase of study fees between 1985 and 2017") + 
+  scale_y_continuous(labels = scales::comma_format(big.mark = ".", decimal.mark = ","))+
+ theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+  guides(fill=guide_legend(title=NULL))+
+   theme(legend.title=element_blank())+
+  scale_x_discrete(breaks = c("1985-86","2001-02","2004-05","2007-08","2010-11","2013-14","2016-17"))+
+ scale_colour_manual(values=c("#66CDAA", "#836FFF", "#63B8FF"))
+                     
+ 
+
+                    
+  
+  
+
+```
+
+# Black achievements
+It becomes apparent that the costs of studying in the USA can hardly be managed if you do not come from a wealthy family. In addition, the published tuition costs often do not match the actual costs, making it difficult for many families to estimate them correctly. This increase in tuition costs has a negative impact on diversity in higher education institutions.
+
+Education should therefore be free or inexpensive and accessible to everyone in order to prevent the exclusion of certain groups and to ensure equal opportunities. Not only students who have been affected so far, but the entire student body, universities and the whole state benefit equally - because diversity in education and work has been considered a decisive, positive factor for some years now. We are on the right track and movements such as "Black Lives Matter" are taking us a step further - but it is also clear that a lot still needs to change.
+
+
+```{r setup12,echo=FALSE,cache=FALSE}
+achievement_education_and_science %>% 
+  ggplot + aes(year, fill = category) + 
+  geom_area(stat = "bin", alpha = 0.9) + 
+  labs(x="Year", y="Achievements", title= "Achievements of African Americans in the last centuries")
+```
+
+The diagram shows how the achievements of African Americans have developed positively. One reason for this is access to education. There are now many well-known African Americans who contribute to society and are very successful.
+However, we have still not reached our goal and must continue to work to ensure that all people have the same rights and opportunities!
+
+It becomes strikingly clear: "Black Education Matters" - for the whole society!
+
+
+```{r setup11,echo=FALSE,cache=FALSE}
+library(cowplot)
+library(magick)
+logo_raw2 <- image_read("ach.png") 
+logo_raw2
+```
+
+# Listing of sources and literature
